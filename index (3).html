@@ -1,0 +1,721 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Умная запись</title>
+<style>
+:root{
+  color-scheme:only light;
+  --blue:#0066FF; --blue-head:#0A7CFF; --blue-tint:#E8F0FF; --blue-soft:#C9DCFF;
+  --bg:#F2F2F7; --card:#FFFFFF; --text:#1C1C1E; --muted:#8E8E93; --sep:#E5E5EA;
+  --green:#34C759; --green-tint:#E7F8EC; --red:#FF3B30; --red-tint:#FFECEB; --orange:#FF9500; --orange-tint:#FFF4E5;
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{font-family:var(--font);color:var(--text);background:#DDE6F3;display:flex;align-items:center;justify-content:center;gap:40px;padding:20px;min-height:100vh}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0}
+
+/* ---------- phone ---------- */
+.phone{position:relative;height:min(844px,calc(100vh - 40px));aspect-ratio:390/844;background:#111;border-radius:54px;padding:12px;box-shadow:0 30px 80px rgba(10,60,140,.25);flex:none}
+.device{position:relative;width:100%;height:100%;border-radius:42px;overflow:hidden;background:var(--bg)}
+.island{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:110px;height:32px;background:#000;border-radius:20px;z-index:50}
+.statusbar{position:absolute;top:0;left:0;right:0;height:50px;display:flex;align-items:center;justify-content:space-between;padding:6px 28px 0 34px;font-weight:600;font-size:15px;z-index:40;pointer-events:none;color:var(--text)}
+.statusbar.light{color:#fff}
+.statusbar .sys{display:flex;gap:6px;align-items:center}
+.screen{position:absolute;inset:0;display:none;flex-direction:column;background:var(--bg);animation:in .22s ease}
+.screen.active{display:flex}
+@keyframes in{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
+.scroll{flex:1;overflow-y:auto;overflow-x:hidden;padding-bottom:24px;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+
+/* nav header */
+.nav{padding:52px 16px 8px;display:grid;grid-template-columns:44px 1fr 44px;align-items:center;background:var(--bg)}
+.nav h1{margin:0;text-align:center;font-size:17px;font-weight:600}
+.nav .icon-btn{width:36px;height:36px;display:flex;align-items:center;justify-content:center;color:var(--blue)}
+.progress{display:flex;gap:6px;padding:4px 16px 12px}
+.progress i{flex:1;height:4px;border-radius:2px;background:var(--sep)}
+.progress i.on{background:var(--blue)}
+.step-label{padding:0 16px 4px;font-size:13px;color:var(--muted)}
+
+/* typography */
+.h2{font-size:22px;font-weight:700;margin:8px 16px 12px}
+.h3{font-size:17px;font-weight:700;margin:0}
+.sec{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.02em;margin:20px 16px 8px}
+.muted{color:var(--muted)}
+p{margin:0}
+
+/* cards & lists */
+.card{background:var(--card);border-radius:16px;margin:0 16px 12px;padding:16px}
+.list{background:var(--card);border-radius:16px;margin:0 16px 12px;overflow:hidden}
+.row{display:flex;align-items:center;gap:12px;padding:12px 16px;min-height:56px;position:relative;width:100%;text-align:left}
+.row+.row::before{content:"";position:absolute;top:0;left:56px;right:0;height:1px;background:var(--sep)}
+.row .ic{width:28px;height:28px;flex:none;display:flex;align-items:center;justify-content:center;color:var(--blue)}
+.row .tx{flex:1;min-width:0}
+.row .tx b{display:block;font-weight:400;font-size:16px}
+.row .tx small{display:block;color:var(--muted);font-size:14px;margin-top:2px}
+.badge{min-width:26px;height:26px;border-radius:13px;background:#E9E9EE;color:var(--text);font-size:14px;display:inline-flex;align-items:center;justify-content:center;padding:0 8px}
+.badge.blue{background:var(--blue);color:#fff}
+.chev{color:#C7C7CC;flex:none}
+.tag{display:inline-block;font-size:12px;padding:3px 8px;border-radius:8px;background:var(--blue-tint);color:var(--blue);font-weight:600}
+.tag.orange{background:var(--orange-tint);color:#B86A00}
+.tag.green{background:var(--green-tint);color:#1E8E3E}
+.tag.red{background:var(--red-tint);color:#C4231A}
+.tag.gray{background:#EDEDF1;color:var(--muted)}
+
+/* buttons */
+.btn{display:flex;align-items:center;justify-content:center;width:calc(100% - 32px);margin:0 16px 10px;height:50px;border-radius:12px;background:var(--blue);color:#fff;font-size:17px;font-weight:600}
+.btn:active{opacity:.85}
+.btn.ghost{background:var(--blue-tint);color:var(--blue)}
+.btn.plain{background:none;color:var(--blue);height:44px}
+.btn.danger{background:var(--red-tint);color:var(--red)}
+.btn.inline{width:100%;margin:12px 0 0}
+.link{color:var(--blue);font-size:15px}
+.footer{padding:12px 0 calc(12px + env(safe-area-inset-bottom));background:var(--bg)}
+
+/* home */
+.home-head{background:var(--blue-head);color:#fff;padding:58px 16px 40px;display:flex;align-items:center;gap:10px}
+.home-head .polis{display:flex;align-items:center;gap:8px;font-size:20px;font-weight:700;flex:1}
+.home-head .hb{width:36px;height:36px;display:flex;align-items:center;justify-content:center;position:relative}
+.dot{position:absolute;top:4px;right:5px;width:9px;height:9px;border-radius:50%;background:#FF3B30;border:2px solid var(--blue-head)}
+.home-body{background:var(--bg);border-radius:20px 20px 0 0;margin-top:-22px;padding-top:18px}
+.sec-head{display:flex;justify-content:space-between;align-items:baseline;margin:4px 16px 12px}
+.sec-head .h3{font-size:20px}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 16px 12px}
+.tile{background:#fff;border-radius:14px;padding:14px 6px;text-align:center;font-size:13px;line-height:1.25;display:flex;flex-direction:column;align-items:center;gap:8px;min-height:96px}
+.tile svg{color:var(--blue)}
+.tabbar{display:flex;justify-content:space-around;background:rgba(255,255,255,.96);border-top:1px solid var(--sep);padding:8px 0 22px}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:var(--muted)}
+.tab.on{color:var(--blue)}
+.new-row{background:linear-gradient(0deg,#fff,#fff)}
+.newchip{font-size:11px;font-weight:700;color:#fff;background:var(--blue);border-radius:6px;padding:2px 6px;margin-left:6px;vertical-align:2px}
+
+/* segmented */
+.seg{display:flex;background:#E9E9EE;border-radius:10px;padding:2px;margin:0 16px 14px}
+.seg span{flex:1;text-align:center;padding:7px 0;font-size:14px;border-radius:8px;color:var(--text)}
+.seg span.on{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.08);font-weight:600}
+.seg .cnt{display:inline-flex;width:18px;height:18px;border-radius:50%;background:var(--blue);color:#fff;font-size:11px;align-items:center;justify-content:center;margin-left:4px}
+
+/* schedule */
+.doc-head{display:flex;gap:12px;align-items:center;margin:0 16px 14px}
+.avatar{width:44px;height:44px;border-radius:50%;background:var(--blue-tint);display:flex;align-items:center;justify-content:center;color:var(--blue);font-weight:700;flex:none}
+.dates{display:flex;gap:6px;overflow-x:auto;padding:0 16px 6px;scrollbar-width:none}
+.dates::-webkit-scrollbar{display:none}
+.date{flex:none;width:46px;height:56px;border-radius:12px;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;color:#C7C7CC}
+.date b{font-size:17px;font-weight:600}
+.empty{text-align:center;padding:20px 24px 8px}
+.empty .eic{width:64px;height:64px;border-radius:50%;background:#EDEDF1;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.empty h3{margin:0 0 6px;font-size:18px}
+.smart{background:#fff;border-radius:16px;margin:8px 16px 12px;padding:16px;border:2px solid var(--blue)}
+.smart .top{display:flex;gap:12px;align-items:flex-start}
+.smart .si{width:40px;height:40px;border-radius:12px;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;flex:none}
+.smart h3{margin:0 0 4px;font-size:17px}
+.smart p{font-size:14px;color:#3A3A3C;line-height:1.35}
+.pts{margin:10px 0 0;padding:0;list-style:none;font-size:14px;color:#3A3A3C}
+.pts li{display:flex;gap:8px;align-items:center;margin-top:6px}
+.pts li::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--blue);flex:none}
+
+/* radio list */
+.opt{display:flex;align-items:center;gap:12px;padding:14px 16px;width:100%;text-align:left;position:relative}
+.opt+.opt::before{content:"";position:absolute;top:0;left:16px;right:0;height:1px;background:var(--sep)}
+.radio{width:22px;height:22px;border-radius:50%;border:2px solid #C7C7CC;flex:none;display:flex;align-items:center;justify-content:center}
+.opt.on .radio{border-color:var(--blue)}
+.opt.on .radio::after{content:"";width:12px;height:12px;border-radius:50%;background:var(--blue)}
+.opt .tx{flex:1}
+.opt .tx b{display:block;font-weight:600;font-size:16px}
+.opt .tx small{color:var(--muted);font-size:14px}
+
+/* chips */
+.chips{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.chip{height:44px;border-radius:10px;background:#F2F2F7;font-size:15px;font-weight:500;color:var(--text)}
+.chip.on{background:var(--blue);color:#fff}
+.presets{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.preset{border-radius:12px;background:#F2F2F7;padding:12px 6px;text-align:center}
+.preset b{display:block;font-size:15px}
+.preset small{font-size:12px;color:var(--muted)}
+.preset.on{background:var(--blue)}
+.preset.on b,.preset.on small{color:#fff}
+.period{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.period .chip{font-size:14px}
+.field-label{font-size:15px;font-weight:600;margin:0 0 10px}
+.hint{display:flex;gap:6px;align-items:center;color:var(--muted);font-size:13px;margin-top:10px}
+
+/* forecast */
+.fc{border-radius:16px;margin:0 16px 12px;padding:14px 16px;display:flex;gap:12px;align-items:center}
+.fc.high{background:var(--green-tint)}.fc.mid{background:var(--orange-tint)}.fc.low{background:var(--red-tint)}
+.meter{display:flex;gap:3px;flex:none}
+.meter i{width:8px;height:22px;border-radius:3px;background:rgba(0,0,0,.1)}
+.fc.high .meter i{background:var(--green)}
+.fc.mid .meter i:nth-child(-n+2){background:var(--orange)}
+.fc.low .meter i:first-child{background:var(--red)}
+.fc b{display:block;font-size:15px}
+.fc span{font-size:13px;color:#3A3A3C}
+
+/* summary */
+.sum-row{display:flex;justify-content:space-between;gap:16px;padding:10px 0;font-size:15px}
+.sum-row+.sum-row{border-top:1px solid var(--sep)}
+.sum-row span:first-child{color:var(--muted)}
+.sum-row span:last-child{text-align:right;font-weight:500}
+.toggle-row{display:flex;gap:12px;align-items:flex-start;padding:4px 0}
+.toggle-row .tx{flex:1}
+.toggle-row .tx b{display:block;font-size:16px;font-weight:500}
+.toggle-row .tx small{display:block;color:var(--muted);font-size:13px;margin-top:3px;line-height:1.35}
+.sw{width:51px;height:31px;border-radius:16px;background:#E9E9EA;position:relative;flex:none;transition:.2s}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.2);transition:.2s}
+.sw.on{background:var(--green)}
+.sw.on::after{left:22px}
+
+/* result screens */
+.result{text-align:center;padding:40px 24px 16px}
+.result .big{width:84px;height:84px;border-radius:50%;margin:0 auto 18px;display:flex;align-items:center;justify-content:center}
+.big.blue{background:var(--blue-tint);color:var(--blue)}.big.green{background:var(--green-tint);color:var(--green)}.big.red{background:var(--red-tint);color:var(--red)}.big.orange{background:var(--orange-tint);color:var(--orange)}
+.result h2{margin:0 0 8px;font-size:24px}
+.result p{color:#3A3A3C;font-size:16px;line-height:1.4}
+.how{counter-reset:s}
+.how li{list-style:none;display:flex;gap:12px;align-items:flex-start;padding:8px 0;font-size:15px;line-height:1.35}
+.how li::before{counter-increment:s;content:counter(s);width:26px;height:26px;border-radius:50%;background:var(--blue-tint);color:var(--blue);font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;flex:none}
+.how{margin:0;padding:0}
+
+/* request card */
+.req-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+.req-title{font-size:18px;font-weight:700}
+.statusline{display:flex;gap:8px;align-items:center;font-size:14px;color:#3A3A3C;margin-top:10px;background:var(--bg);border-radius:10px;padding:10px 12px}
+.pulse{width:8px;height:8px;border-radius:50%;background:var(--blue);animation:p 1.4s infinite;flex:none}
+@keyframes p{0%{box-shadow:0 0 0 0 rgba(0,102,255,.5)}100%{box-shadow:0 0 0 10px rgba(0,102,255,0)}}
+.btn-pair{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.btn-pair .btn{width:100%;margin:0;height:44px;font-size:15px}
+
+/* confirm */
+.slot-card{background:#fff;border-radius:16px;margin:0 16px 12px;padding:20px 16px;text-align:center}
+.slot-card .when{font-size:28px;font-weight:700;margin:6px 0 2px}
+.slot-card .day{font-size:17px;color:#3A3A3C}
+.timer{display:flex;align-items:center;justify-content:center;gap:8px;margin:14px auto 0;background:var(--orange-tint);color:#9A5A00;border-radius:10px;padding:10px 14px;font-size:15px;width:fit-content}
+.timer b{font-variant-numeric:tabular-nums}
+
+/* lock screen */
+.lock{background:linear-gradient(160deg,#16325C 0%,#0B4AA8 45%,#3B7BDB 100%);color:#fff}
+.lock .lt{text-align:center;margin-top:84px}
+.lock .lt small{font-size:17px;opacity:.85}
+.lock .lt div{font-size:84px;font-weight:600;letter-spacing:-2px;line-height:1.05}
+.notif{margin:40px 10px 0;background:rgba(245,245,250,.82);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:22px;padding:12px 14px;color:var(--text);text-align:left;display:flex;gap:10px;width:calc(100% - 20px);animation:drop .5s cubic-bezier(.2,.9,.3,1.2)}
+@keyframes drop{from{transform:translateY(-30px);opacity:0}to{transform:none;opacity:1}}
+.notif .app{width:38px;height:38px;border-radius:9px;background:var(--blue-head);color:#fff;display:flex;align-items:center;justify-content:center;flex:none;font-weight:800;font-size:11px}
+.notif .nt{flex:1;min-width:0}
+.notif .nh{display:flex;justify-content:space-between;font-size:13px;color:#6C6C70}
+.notif b{display:block;font-size:15px;margin:2px 0}
+.notif p{font-size:15px;line-height:1.3}
+.lock .tapnote{text-align:center;font-size:13px;opacity:.75;margin-top:14px}
+.lock .bottom{margin-top:auto;display:flex;justify-content:space-between;padding:0 46px 40px}
+.lock .bottom span{width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.18)}
+
+/* sheet & modal & toast */
+.overlay{position:absolute;inset:0;background:rgba(0,0,0,.35);z-index:60;display:none;align-items:flex-end;justify-content:center}
+.overlay.show{display:flex;animation:fade .2s}
+.overlay.center{align-items:center}
+@keyframes fade{from{opacity:0}}
+.sheet{background:#fff;width:100%;border-radius:20px 20px 0 0;padding:10px 0 26px;animation:up .25s ease}
+@keyframes up{from{transform:translateY(100%)}}
+.grab{width:36px;height:5px;border-radius:3px;background:#D1D1D6;margin:0 auto 14px}
+.sheet h3{font-size:20px;margin:0 16px 8px}
+.sheet p{font-size:15px;color:#3A3A3C;margin:0 16px 16px;line-height:1.4}
+.modal{background:#fff;border-radius:20px;width:84%;padding:24px 18px 16px;text-align:center;animation:pop .25s ease}
+@keyframes pop{from{transform:scale(.9);opacity:0}}
+.modal .ok{width:64px;height:64px;border-radius:50%;background:var(--green);color:#fff;margin:0 auto 14px;display:flex;align-items:center;justify-content:center}
+.modal h3{margin:0 0 6px;font-size:20px}
+.modal .md{display:flex;align-items:center;justify-content:center;gap:6px;font-size:15px;color:#3A3A3C;margin-bottom:6px}
+.modal .btn{width:100%;margin:12px 0 0}
+.toast{position:absolute;left:50%;bottom:110px;transform:translateX(-50%);background:rgba(28,28,30,.92);color:#fff;font-size:14px;padding:10px 16px;border-radius:12px;z-index:70;opacity:0;pointer-events:none;transition:.25s;white-space:nowrap}
+.toast.show{opacity:1}
+.hl{animation:hl 2.2s ease}
+@keyframes hl{0%,40%{background:var(--blue-tint)}100%{background:#fff}}
+
+/* ---------- demo panel ---------- */
+.demo{width:320px;flex:none;background:#fff;border-radius:20px;padding:22px;box-shadow:0 10px 40px rgba(10,60,140,.12);max-height:calc(100vh - 40px);overflow:auto}
+.demo .lbl{font-size:12px;font-weight:700;color:var(--blue);letter-spacing:.06em;text-transform:uppercase}
+.demo h2{margin:6px 0 4px;font-size:22px}
+.demo .note{font-size:13px;color:var(--muted);line-height:1.4;margin-bottom:16px}
+.demo h4{margin:18px 0 8px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.demo .steps button,.demo .ev button{display:flex;gap:10px;align-items:center;width:100%;text-align:left;padding:8px 10px;border-radius:10px;font-size:14px}
+.demo .steps button:hover,.demo .ev button:hover{background:var(--bg)}
+.demo .steps button.cur{background:var(--blue-tint);color:var(--blue);font-weight:600}
+.demo .steps i{font-style:normal;width:22px;height:22px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex:none}
+.demo .steps button.cur i{background:var(--blue);color:#fff}
+.demo .ev button{border:1px solid var(--sep);margin-bottom:6px}
+.demo .ev button span{flex:1}
+.demo .ev small{color:var(--muted);font-size:12px}
+.demo.hidden{display:none}
+.demo .reset{margin-top:14px;font-size:14px;color:var(--muted)}
+
+@media (max-width:820px){
+  body{flex-direction:column;padding:0;gap:0;background:var(--bg);display:block}
+  .phone{height:100dvh;width:100%;aspect-ratio:auto;border-radius:0;padding:0;box-shadow:none}
+  .device{border-radius:0}
+  .island{display:none}
+  .demo{width:auto;margin:0;border-radius:0;max-height:none;box-shadow:none;border-top:1px solid var(--sep)}
+}
+</style>
+</head>
+<body>
+
+<div class="phone">
+ <div class="device" id="device">
+  <div class="island"></div>
+  <div class="statusbar" id="sb"><span id="sbtime">9:41</span><span class="sys">
+   <svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>
+   <svg width="16" height="12" viewBox="0 0 16 12" fill="currentColor"><path d="M8 2.5c2.3 0 4.4.9 5.9 2.4l1.1-1.1A9.9 9.9 0 0 0 8 1 9.9 9.9 0 0 0 1 3.8l1.1 1.1A8.3 8.3 0 0 1 8 2.5Zm0 3c1.5 0 2.8.6 3.8 1.5l1.1-1.1A6.9 6.9 0 0 0 8 4a6.9 6.9 0 0 0-4.9 2l1.1 1.1c1-1 2.3-1.6 3.8-1.6Zm0 3c.7 0 1.3.3 1.8.7L8 11 6.2 9.2c.5-.4 1.1-.7 1.8-.7Z"/></svg>
+   <svg width="26" height="12" viewBox="0 0 26 12"><rect x=".5" y=".5" width="22" height="11" rx="3" fill="none" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="19" height="8" rx="2" fill="currentColor"/><rect x="24" y="4" width="1.5" height="4" rx=".7" fill="currentColor" opacity=".4"/></svg>
+  </span></div>
+
+  <!-- 0 HOME -->
+  <section class="screen" data-id="home" data-sb="light">
+   <div class="scroll">
+    <div class="home-head">
+     <div class="polis"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg>Мой полис <svg width="10" height="16" viewBox="0 0 10 16" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m2 2 6 6-6 6"/></svg></div>
+     <span class="hb"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM18 18h3v3h-3z"/></svg></span>
+     <span class="hb"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 20a2 2 0 0 0 4 0"/></svg><span class="dot"></span></span>
+    </div>
+    <div class="home-body">
+     <div class="sec-head"><span class="h3">Запись</span><span class="link" data-na>Все цели</span></div>
+     <div class="tiles">
+      <button class="tile" data-go="spec"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.8V4a2 2 0 0 0-4 0v10.8a4 4 0 1 0 4 0Z"/></svg>Симптомы простуды</button>
+      <button class="tile" data-go="spec"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" opacity=".85"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg>Боль, плохое самочувствие</button>
+      <button class="tile" data-go="spec"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg>Плановый приём без жалоб</button>
+     </div>
+     <button class="btn" data-go="spec">Записаться</button>
+     <div class="list" style="margin-top:12px">
+      <button class="row" data-go="records"><span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></span><span class="tx"><b>Записи</b><small id="homeNearest">Ближайшая 28 октября</small></span><span class="badge" id="recCount">1</span><svg class="chev" width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="currentColor" stroke-width="2"><path d="m1 1 6 6-6 6"/></svg></button>
+      <button class="row new-row" data-go="myreq"><span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span class="tx"><b>Мои заявки <span class="newchip">Новое</span></b><small id="homeReqSub">Умная запись на удобное время</small></span><span class="badge blue" id="reqBadge" style="display:none">1</span><svg class="chev" width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="currentColor" stroke-width="2"><path d="m1 1 6 6-6 6"/></svg></button>
+      <button class="row" data-na><span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg></span><span class="tx"><b>Направления</b></span><span class="badge">2</span><svg class="chev" width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="currentColor" stroke-width="2"><path d="m1 1 6 6-6 6"/></svg></button>
+     </div>
+     <div class="sec-head" style="margin-top:20px"><span class="h3">Лекарства</span></div>
+     <div class="list">
+      <button class="row" data-na><span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M8 12h8M8 16h6"/></svg></span><span class="tx"><b>Рецепты</b></span><svg class="chev" width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="currentColor" stroke-width="2"><path d="m1 1 6 6-6 6"/></svg></button>
+      <button class="row" data-na><span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h18l-2 13H5z"/><path d="M8 7a4 4 0 0 1 8 0"/></svg></span><span class="tx"><b>Заказы из аптек</b></span><svg class="chev" width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="currentColor" stroke-width="2"><path d="m1 1 6 6-6 6"/></svg></button>
+     </div>
+    </div>
+   </div>
+   <div class="tabbar">
+    <span class="tab on"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3 3 10v11h6v-6h6v6h6V10z"/></svg>Главная</span>
+    <span class="tab" data-na><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h6l2 2h10v10H3z"/></svg>Медкарта</span>
+    <span class="tab" data-na><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>Ещё</span>
+   </div>
+  </section>
+
+  <!-- 1 SPECIALTIES -->
+  <section class="screen" data-id="spec">
+   <div class="nav"><button class="icon-btn" data-back><svg width="18" height="18" viewBox="0 0 18 18" stroke="currentColor" stroke-width="2.4"><path d="M2 2l14 14M16 2 2 16"/></svg></button><h1>Запись</h1><span></span></div>
+   <div class="seg"><span>Цель</span><span>Напр.<span class="cnt">2</span></span><span class="on">Врач</span></div>
+   <div class="scroll">
+    <div class="sec" style="margin-top:4px">ОРВИ / COVID-19</div>
+    <div class="list"><button class="row" data-spec="Дежурный врач ОРВИ"><span class="ic">${ic.doc}</span><span class="tx"><b>Дежурный врач ОРВИ</b></span>${ic.chev}</button></div>
+    <div class="sec">Специальности</div>
+    <div class="list" id="specList"></div>
+   </div>
+  </section>
+
+  <!-- 2 SCHEDULE EMPTY + BANNER -->
+  <section class="screen" data-id="sched">
+   <div class="nav"><button class="icon-btn" data-back>${ic.back}</button><h1>Выбор времени</h1><span></span></div>
+   <div class="scroll">
+    <div class="doc-head"><div class="avatar" id="schedAv">О</div><div><div class="h3" id="schedSpec">Офтальмолог</div><small class="muted">ГП № 219, филиал 3 · все врачи</small></div></div>
+    <div class="sec" style="margin:0 16px 8px">Октябрь · Ноябрь</div><div class="dates" id="dates"></div>
+    <div class="empty">
+     <div class="eic"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4M9 14l6 4M15 14l-6 4"/></svg></div>
+     <h3>Свободного времени нет</h3>
+     <p class="muted" style="font-size:15px">На ближайшие 14 дней всё занято. Новые окна появляются, когда кто-то отменяет запись</p>
+    </div>
+    <div class="smart">
+     <div class="top"><div class="si"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+      <div><h3>Умная запись</h3><p>Укажите, когда вам удобно. Мы найдём освободившееся время и запишем вас сами</p></div></div>
+     <ul class="pts"><li>Не нужно проверять расписание каждый день</li><li>Только в ваши дни и часы</li><li>Уведомим, как только запишем</li></ul>
+     <button class="btn inline" data-go="doctor">Подобрать время</button>
+    </div>
+   </div>
+  </section>
+
+  <!-- 3 DOCTOR -->
+  <section class="screen" data-id="doctor">
+   <div class="nav"><button class="icon-btn" data-back>${ic.back}</button><h1>Умная запись</h1><span></span></div>
+   <div class="progress"><i class="on"></i><i></i><i></i></div>
+   <div class="step-label">Шаг 1 из 3</div>
+   <div class="scroll">
+    <div class="h2">К какому врачу записать?</div>
+    <div class="list" id="docList"></div>
+    <div class="hint" style="margin:0 16px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1"/></svg>С вариантом «Любой врач» шанс записаться выше примерно в 3 раза</div>
+   </div>
+   <div class="footer"><button class="btn" data-go="time">Дальше</button></div>
+  </section>
+
+  <!-- 4 DAYS & TIME -->
+  <section class="screen" data-id="time">
+   <div class="nav"><button class="icon-btn" data-back>${ic.back}</button><h1>Умная запись</h1><span></span></div>
+   <div class="progress"><i class="on"></i><i class="on"></i><i></i></div>
+   <div class="step-label">Шаг 2 из 3</div>
+   <div class="scroll">
+    <div class="h2">Когда вам удобно?</div>
+    <div class="card"><p class="field-label">Дни недели</p><div class="chips" id="dayChips"></div></div>
+    <div class="card"><p class="field-label">Время</p><div class="presets" id="presets"></div></div>
+    <div class="card"><p class="field-label">Записать не позже</p><div class="period" id="periods"></div><div class="hint" id="deadlineHint"></div></div>
+    <div class="fc" id="forecast"><div class="meter"><i></i><i></i><i></i></div><div><b id="fcTitle"></b><span id="fcText"></span></div></div>
+   </div>
+   <div class="footer"><button class="btn" id="timeNext">Дальше</button></div>
+  </section>
+
+  <!-- 5 REVIEW -->
+  <section class="screen" data-id="review">
+   <div class="nav"><button class="icon-btn" data-back>${ic.back}</button><h1>Умная запись</h1><span></span></div>
+   <div class="progress"><i class="on"></i><i class="on"></i><i class="on"></i></div>
+   <div class="step-label">Шаг 3 из 3</div>
+   <div class="scroll">
+    <div class="h2">Проверьте заявку</div>
+    <div class="card" id="summary"></div>
+    <div class="card">
+     <div class="toggle-row"><div class="tx"><b>Записывать автоматически</b><small>Как только появится подходящее время, мы запишем вас. Подтвердить запись нужно будет в течение 2 часов</small></div><button class="sw on" data-sw="auto"></button></div>
+    </div>
+    <div class="card">
+     <div class="toggle-row"><div class="tx"><b>Дублировать по SMS</b><small>Пуш-уведомление придёт в любом случае</small></div><button class="sw on" data-sw="sms"></button></div>
+    </div>
+   </div>
+   <div class="footer"><button class="btn" id="createReq">Создать заявку</button></div>
+  </section>
+
+  <!-- 6 CREATED -->
+  <section class="screen" data-id="created">
+   <div class="scroll">
+    <div class="result" style="padding-top:90px">
+     <div class="big blue"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+     <h2>Ищем для вас время</h2>
+     <p id="createdText">Заявка к офтальмологу в очереди</p>
+    </div>
+    <div class="card"><p class="field-label">Что будет дальше</p>
+     <ol class="how"><li>Когда кто-то отменит приём в ваши дни и часы, время закрепится за вами</li><li>Придёт уведомление. На подтверждение будет 2 часа</li><li>Накануне приёма напомним о визите</li></ol>
+    </div>
+   </div>
+   <div class="footer"><button class="btn" data-go="myreq">Мои заявки</button><button class="btn plain" data-home>На главную</button></div>
+  </section>
+
+  <!-- 7 MY REQUESTS -->
+  <section class="screen" data-id="myreq">
+   <div class="nav"><button class="icon-btn" data-back>${ic.back}</button><h1>Мои заявки</h1><span></span></div>
+   <div class="scroll" id="myreqBody"></div>
+  </section>
+
+  <!-- 8 LOCK SCREEN PUSH -->
+  <section class="screen lock" data-id="push" data-sb="light">
+   <div class="lt"><small id="lockDate">Пятница, 23 октября</small><div id="lockTime">12:05</div></div>
+   <button class="notif" id="notif"></button>
+   <div class="tapnote">Нажмите на уведомление</div>
+   <div class="bottom"><span></span><span></span></div>
+  </section>
+
+  <!-- 9 CONFIRM -->
+  <section class="screen" data-id="confirm">
+   <div class="nav"><button class="icon-btn" data-home><svg width="18" height="18" viewBox="0 0 18 18" stroke="currentColor" stroke-width="2.4"><path d="M2 2l14 14M16 2 2 16"/></svg></button><h1>Подтвердите запись</h1><span></span></div>
+   <div class="scroll">
+    <div class="slot-card">
+     <span class="tag green">Мы нашли время по вашей заявке</span>
+     <div class="when" id="cfTime">18:40</div>
+     <div class="day" id="cfDay">Пятница, 24 октября</div>
+     <div class="timer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg>Подтвердите в течение <b id="timer">1:59:59</b></div>
+    </div>
+    <div class="card" id="cfDetails"></div>
+   </div>
+   <div class="footer"><button class="btn" id="confirmBtn">Подтвердить</button><button class="btn plain" id="declineBtn" style="color:var(--red)">Отказаться от этого времени</button></div>
+  </section>
+
+  <!-- 10 RECORDS (booked) -->
+  <section class="screen" data-id="records">
+   <div class="nav"><button class="icon-btn" data-back>${ic.back}</button><h1>Записи</h1><span></span></div>
+   <div class="scroll" id="recordsBody"></div>
+  </section>
+
+  <!-- 11 REMINDER -->
+  <section class="screen" data-id="reminder">
+   <div class="nav"><button class="icon-btn" data-home><svg width="18" height="18" viewBox="0 0 18 18" stroke="currentColor" stroke-width="2.4"><path d="M2 2l14 14M16 2 2 16"/></svg></button><h1>Напоминание</h1><span></span></div>
+   <div class="scroll">
+    <div class="slot-card"><span class="tag">Завтра</span><div class="when" id="rmTime">18:40</div><div class="day" id="rmDay">Пятница, 24 октября</div></div>
+    <div class="card" id="rmDetails"></div>
+    <div class="card" style="display:flex;gap:10px;align-items:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg><span style="font-size:15px">Возьмите полис ОМС и паспорт</span></div>
+   </div>
+   <div class="footer"><button class="btn" id="willCome">Приду</button><button class="btn plain" id="cancelVisit" style="color:var(--red)">Отменить запись</button></div>
+  </section>
+
+  <!-- E1 REFERRAL -->
+  <section class="screen" data-id="e1">
+   <div class="nav"><button class="icon-btn" data-back>${ic.back}</button><h1>Умная запись</h1><span></span></div>
+   <div class="scroll">
+    <div class="result" style="padding-top:60px"><div class="big orange"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M12 12v3M12 18h.01"/></svg></div>
+     <h2>Нужно направление</h2><p>К неврологу записывают по направлению терапевта. Когда оно появится, умную запись можно будет создать в один шаг</p></div>
+   </div>
+   <div class="footer"><button class="btn" data-spec-go="Терапевт">Записаться к терапевту</button><button class="btn plain" data-back>Назад</button></div>
+  </section>
+
+  <!-- E3 DEADLINE -->
+  <section class="screen" data-id="e3">
+   <div class="nav"><button class="icon-btn" data-home>${ic.back}</button><h1>Мои заявки</h1><span></span></div>
+   <div class="scroll">
+    <div class="result" style="padding-top:50px"><div class="big orange"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="13" r="8"/><path d="M12 9v4M12 16h.01M9 2h6"/></svg></div>
+     <h2>Срок заявки подходит</h2><p id="e3text">До крайней даты осталось 3 дня, а подходящее время пока не освободилось</p></div>
+    <div class="card"><p class="field-label">Ближайшее свободное время</p>
+     <div class="sum-row"><span>Вторник, 3 ноября</span><span>10:20, каб. 301</span></div></div>
+   </div>
+   <div class="footer"><button class="btn" id="takeNearest">Записаться на 10:20</button><button class="btn ghost" id="extendReq">Продлить заявку на 2 недели</button></div>
+  </section>
+
+  <!-- E4 TIMEOUT -->
+  <section class="screen" data-id="e4">
+   <div class="scroll">
+    <div class="result" style="padding-top:110px"><div class="big red"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg></div>
+     <h2>Время на подтверждение вышло</h2><p>Вы не подтвердили запись за 2 часа. Это время передано следующему пациенту, а ваша заявка снова в очереди</p></div>
+   </div>
+   <div class="footer"><button class="btn" data-go="myreq">Мои заявки</button><button class="btn plain" data-home>На главную</button></div>
+  </section>
+
+  <!-- E5 CANCELLED -->
+  <section class="screen" data-id="e5">
+   <div class="scroll">
+    <div class="result" style="padding-top:110px"><div class="big green"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m5 12 5 5 9-10"/></svg></div>
+     <h2>Запись отменена</h2><p>Спасибо, что предупредили. Время уже предложено следующему пациенту из умной очереди</p></div>
+   </div>
+   <div class="footer"><button class="btn" id="newReq">Создать новую заявку</button><button class="btn plain" data-home>На главную</button></div>
+  </section>
+
+  <div class="overlay" id="overlay"></div>
+  <div class="toast" id="toast"></div>
+ </div>
+</div>
+
+<aside class="demo">
+ <h2>Сценарии показа</h2>
+ <div class="note">Клавиша H скрывает и показывает эту панель</div>
+ <h4>Экраны</h4>
+ <div class="steps" id="steps"></div>
+ <h4>События</h4>
+ <div class="ev">
+  <button id="evSlot"><span>Освободилось подходящее время<br><small>пациенту приходит автозапись</small></span></button>
+  <button id="evTimeout"><span>Прошло 2 часа без ответа<br><small>слот уходит следующему</small></span></button>
+  <button id="evDeadline"><span>Срок заявки подходит<br><small>пустой результат</small></span></button>
+  <button id="evRemind"><span>Наступил день перед приёмом<br><small>напоминание</small></span></button>
+ </div>
+ <button class="reset" id="reset">Начать заново</button>
+</aside>
+
+<script>
+const ic={
+ chev:'<svg class="chev" width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="currentColor" stroke-width="2"><path d="m1 1 6 6-6 6"/></svg>',
+ back:'<svg width="12" height="20" viewBox="0 0 12 20" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M10 2 2 10l8 8"/></svg>',
+ doc:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M5 21v-2a7 7 0 0 1 14 0v2M10 14v3M14 14v3"/></svg>',
+ check:'<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5 9-10"/></svg>',
+ cal:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>'
+};
+// inject icon placeholders in static markup
+document.querySelectorAll('.device').forEach(d=>{d.innerHTML=d.innerHTML.replace(/\$\{ic\.(\w+)\}/g,(m,k)=>ic[k])});
+
+const TODAY=new Date(2026,9,22); // четверг, 22 октября 2026
+const WD=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+const WDF=['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
+const WDACC=['воскресенье','понедельник','вторник','среду','четверг','пятницу','субботу'];
+const MON=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+const PRESETS={morning:{n:'Утро',r:'08:00–12:00',t:'09:20',rate:2},day:{n:'День',r:'12:00–17:00',t:'13:40',rate:1.5},evening:{n:'Вечер',r:'17:00–20:00',t:'18:40',rate:1}};
+const DOCTORS=[{id:'any',n:'Любой врач',s:'Так быстрее всего',tag:'Рекомендуем'},{id:'smirnova',n:'Смирнова Е. А.',s:'каб. 214'},{id:'kovalev',n:'Ковалёв Д. В.',s:'каб. 301'},{id:'orlova',n:'Орлова М. С.',s:'каб. 215'}];
+const SPECS=['Терапевт','Хирург','Офтальмолог','Оториноларинголог','Уролог','Невролог'];
+const NEED_REF=['Невролог'];
+const PERIODS=[{d:7,n:'Неделя'},{d:14,n:'2 недели'},{d:30,n:'Месяц'}];
+
+const fmt=d=>`${d.getDate()} ${MON[d.getMonth()]}`;
+const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+const lc=s=>s.charAt(0).toLowerCase()+s.slice(1);
+const dative={'Терапевт':'терапевту','Хирург':'хирургу','Офтальмолог':'офтальмологу','Оториноларинголог':'оториноларингологу','Уролог':'урологу','Невролог':'неврологу','Дежурный врач ОРВИ':'дежурному врачу'};
+
+let S;
+function initState(){S={spec:'Офтальмолог',doctor:'any',days:[1,3,5],times:['evening'],period:14,auto:true,sms:true,req:null,slot:null,booked:null};}
+initState();
+
+/* ---------- navigation ---------- */
+let stack=['home'];
+const MAIN=[['home','Главная ЕМИАС'],['spec','Выбор специальности'],['sched','Нет времени + баннер'],['doctor','Шаг 1: врач'],['time','Шаг 2: дни и часы'],['review','Шаг 3: проверка'],['created','Заявка создана'],['myreq','Мои заявки'],['push','Пуш об автозаписи'],['confirm','Подтверждение'],['records','Запись подтверждена'],['reminder','Напоминание']];
+function show(id){
+ document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.dataset.id===id));
+ const scr=document.querySelector(`.screen[data-id="${id}"]`);
+ document.getElementById('sb').classList.toggle('light',scr.dataset.sb==='light');document.getElementById('sbtime').style.visibility=scr.classList.contains('lock')?'hidden':'visible';
+ const sc=scr.querySelector('.scroll');if(sc)sc.scrollTop=0;
+ render(id);
+ document.querySelectorAll('#steps button').forEach(b=>b.classList.toggle('cur',b.dataset.to===id));
+ closeOverlay();
+}
+function go(id){stack.push(id);show(id)}
+function back(){if(stack.length>1)stack.pop();show(stack[stack.length-1])}
+function home(){stack=['home'];show('home')}
+
+document.addEventListener('click',e=>{
+ if(e.target.closest('[data-na]')){toast('Раздел не входит в прототип');return}
+ const t=e.target.closest('[data-go],[data-back],[data-home],[data-spec],[data-spec-go],[data-sw]');if(!t)return;
+ if(t.dataset.go)go(t.dataset.go);
+ else if(t.hasAttribute('data-back'))back();
+ else if(t.hasAttribute('data-home'))home();
+ else if(t.dataset.spec){S.spec=t.dataset.spec;go(NEED_REF.includes(S.spec)?'e1':'sched')}
+ else if(t.dataset.specGo){S.spec=t.dataset.specGo;stack=['home','spec'];go('sched')}
+ else if(t.dataset.sw){S[t.dataset.sw]=!S[t.dataset.sw];t.classList.toggle('on',S[t.dataset.sw])}
+});
+
+/* ---------- logic ---------- */
+function deadline(){return addDays(TODAY,S.period)}
+function forecast(){
+ const perWeek=S.times.reduce((a,k)=>a+PRESETS[k].rate,0)*S.days.length*.8*(S.doctor==='any'?1:.35);
+ const expected=perWeek*S.period/7;
+ const level=S.days.length===0||S.times.length===0?'none':expected>=3?'high':expected>=1.5?'mid':'low';
+ return {perWeek,expected,level};
+}
+function plural(n,a,b,c){n=Math.abs(n)%100;const n1=n%10;if(n>10&&n<20)return c;if(n1>1&&n1<5)return b;if(n1===1)return a;return c}
+function docName(){if(S.doctor==='any')return 'Любой врач';return DOCTORS.find(d=>d.id===S.doctor).n}
+function slotDoctor(){const d=S.doctor==='any'?DOCTORS[1]:DOCTORS.find(x=>x.id===S.doctor);return d}
+function daysText(){return S.days.slice().sort().map(d=>WD[d]).join(', ')||'не выбраны'}
+function timesText(){const order=['morning','day','evening'];return order.filter(k=>S.times.includes(k)).map(k=>`${PRESETS[k].n.toLowerCase()}, ${PRESETS[k].r}`).join('; ')||'не выбрано'}
+function findSlot(){
+ const order=['morning','day','evening'];const tk=order.filter(k=>S.times.includes(k)).pop()||'evening';
+ for(let i=2;i<=S.period;i++){const d=addDays(TODAY,i);if(S.days.includes(d.getDay()))return{date:d,time:PRESETS[tk].t,doc:slotDoctor()}}
+ const d=addDays(TODAY,2);return{date:d,time:PRESETS[tk].t,doc:slotDoctor()};
+}
+function ensureReq(){if(!S.req)S.req={status:'queue',created:TODAY,spec:S.spec}}
+
+function render(id){
+ if(id==='home'){
+  const b=document.getElementById('reqBadge');const active=S.req&&S.req.status==='queue';b.style.display=active?'':'none';
+  document.getElementById('homeReqSub').textContent=active?`${S.spec}: ищем время`:'Умная запись на удобное время';
+  document.getElementById('recCount').textContent=S.booked?2:1;
+  document.getElementById('homeNearest').textContent=S.booked?`Ближайшая ${fmt(S.booked.date)}`:'Ближайшая 28 октября';
+ }
+ if(id==='spec'){
+  document.getElementById('specList').innerHTML=SPECS.map(s=>`<button class="row" data-spec="${s}"><span class="ic">${ic.doc}</span><span class="tx"><b>${s}</b>${NEED_REF.includes(s)?'<small>По направлению</small>':''}</span>${ic.chev}</button>`).join('');
+ }
+ if(id==='sched'){
+  document.getElementById('schedSpec').textContent=S.spec;document.getElementById('schedAv').textContent=S.spec[0];
+  let h='';for(let i=0;i<14;i++){const d=addDays(TODAY,i);h+=`<div class="date"><span>${WD[d.getDay()]}</span><b>${d.getDate()}</b></div>`}
+  document.getElementById('dates').innerHTML=h;
+ }
+ if(id==='doctor'){
+  document.getElementById('docList').innerHTML=DOCTORS.map(d=>`<button class="opt ${S.doctor===d.id?'on':''}" data-doc="${d.id}"><span class="radio"></span><span class="tx"><b>${d.n}</b><small>${d.s}</small></span>${d.tag?`<span class="tag">${d.tag}</span>`:''}</button>`).join('');
+ }
+ if(id==='time')renderTime();
+ if(id==='review'){
+  document.getElementById('createReq').textContent=(S.req&&S.req.status==='queue')?'Сохранить изменения':'Создать заявку';
+  const rows=[['Специальность',S.spec],['Врач',docName()],['Дни',daysText()],['Время',timesText()],['Не позже',fmt(deadline())]];
+  document.getElementById('summary').innerHTML=rows.map(r=>`<div class="sum-row"><span>${r[0]}</span><span>${r[1]}</span></div>`).join('')+`<button class="link" data-go="time" style="margin-top:8px">Изменить</button>`;
+ }
+ if(id==='created')document.getElementById('createdText').textContent=`Заявка к ${dative[S.spec]||'врачу'} в очереди. Вам ничего не нужно делать, мы сообщим, когда запишем`;
+ if(id==='myreq')renderMyReq();
+ if(id==='push'){
+  const s=S.slot;
+  document.getElementById('lockDate').textContent=`${WDF[TODAY.getDay()+1]}, ${fmt(addDays(TODAY,1))}`;
+  document.getElementById('notif').innerHTML=`<span class="app">ЕМИАС</span><span class="nt"><span class="nh"><span>ЕМИАС</span><span>сейчас</span></span><b>${S.auto?'Вы записаны к '+(dative[S.spec]||'врачу'):'Освободилось время к '+(dative[S.spec]||'врачу')}</b><p>${WD[s.date.getDay()]}, ${fmt(s.date)}, ${s.time}, ${s.doc.s}. ${S.auto?'Подтвердите до 14:05':'Успейте записаться'}</p></span>`;
+ }
+ if(id==='confirm'){
+  const s=S.slot;document.getElementById('cfTime').textContent=s.time;document.getElementById('cfDay').textContent=`${WDF[s.date.getDay()]}, ${fmt(s.date)}`;
+  document.getElementById('cfDetails').innerHTML=[['Врач',`${S.spec}, ${s.doc.n}`],['Кабинет',s.doc.s.replace('каб. ','')],['Адрес','ул. Новаторов, 16, ГП № 219'],['По заявке',`${daysText()}; ${PRESETS[S.times[0]]?.n.toLowerCase()||''}`]].map(r=>`<div class="sum-row"><span>${r[0]}</span><span>${r[1]}</span></div>`).join('');
+  startTimer();
+  document.querySelector('[data-id="confirm"] .nav h1').textContent=S.auto?'Подтвердите запись':'Записаться на это время?';
+  document.getElementById('confirmBtn').textContent=S.auto?'Подтвердить':'Записаться';
+  document.querySelector('[data-id="confirm"] .timer').style.display=S.auto?'':'none';
+ }
+ if(id==='records')renderRecords();
+ if(id==='reminder'){
+  const s=S.booked||S.slot||findSlot();document.getElementById('rmTime').textContent=s.time;document.getElementById('rmDay').textContent=`${WDF[s.date.getDay()]}, ${fmt(s.date)}`;
+  document.getElementById('rmDetails').innerHTML=[['Врач',`${S.spec}, ${s.doc.n}`],['Кабинет',s.doc.s.replace('каб. ','')],['Адрес','ул. Новаторов, 16, ГП № 219']].map(r=>`<div class="sum-row"><span>${r[0]}</span><span>${r[1]}</span></div>`).join('');
+ }
+ if(id==='e3')document.getElementById('e3text').textContent=`До ${fmt(deadline())} осталось 3 дня, а подходящее время к ${dative[S.spec]||'врачу'} пока не освободилось`;
+}
+
+document.getElementById('docList').addEventListener('click',e=>{const o=e.target.closest('[data-doc]');if(!o)return;S.doctor=o.dataset.doc;render('doctor')});
+
+function renderTime(){
+ document.getElementById('dayChips').innerHTML=[1,2,3,4,5,6].map(d=>`<button class="chip ${S.days.includes(d)?'on':''}" data-day="${d}">${WD[d]}</button>`).join('');
+ document.getElementById('presets').innerHTML=Object.entries(PRESETS).map(([k,p])=>`<button class="preset ${S.times.includes(k)?'on':''}" data-preset="${k}"><b>${p.n}</b><small>${p.r}</small></button>`).join('');
+ document.getElementById('periods').innerHTML=PERIODS.map(p=>`<button class="chip ${S.period===p.d?'on':''}" data-period="${p.d}">${p.n}</button>`).join('');
+ document.getElementById('deadlineHint').innerHTML=`${ic.cal} Запишем не позже ${fmt(deadline())}`;
+ const f=forecast();const el=document.getElementById('forecast');el.className='fc '+(f.level==='none'?'low':f.level);
+ const t={high:'Высокий шанс записаться',mid:'Средний шанс записаться',low:'Низкий шанс записаться',none:'Выберите дни и время'};
+ document.getElementById('fcTitle').textContent=t[f.level];
+ const n=Math.max(1,Math.round(f.perWeek));
+ document.getElementById('fcText').textContent=f.level==='none'?'Нужен хотя бы один день и одно время':f.perWeek<1?'В эти часы место освобождается реже раза в неделю':`В эти часы место освобождается примерно ${n} ${plural(n,'раз','раза','раз')} в неделю`;
+ const nb=document.getElementById('timeNext');nb.style.opacity=f.level==='none'?.4:1;
+}
+document.getElementById('dayChips').addEventListener('click',e=>{const c=e.target.closest('[data-day]');if(!c)return;const d=+c.dataset.day;S.days=S.days.includes(d)?S.days.filter(x=>x!==d):[...S.days,d];renderTime()});
+document.getElementById('presets').addEventListener('click',e=>{const c=e.target.closest('[data-preset]');if(!c)return;const k=c.dataset.preset;S.times=S.times.includes(k)?S.times.filter(x=>x!==k):[...S.times,k];renderTime()});
+document.getElementById('periods').addEventListener('click',e=>{const c=e.target.closest('[data-period]');if(!c)return;S.period=+c.dataset.period;renderTime()});
+document.getElementById('timeNext').addEventListener('click',()=>{
+ const f=forecast();if(f.level==='none'){toast('Выберите хотя бы один день и время');return}
+ if(f.level==='low'){sheet(`<h3>Мало подходящих окон</h3><p>За последний месяц в эти дни и часы место освобождалось очень редко. До ${fmt(deadline())} записать вас, скорее всего, не получится</p><p style="margin-top:-6px">Добавьте ещё дни, расширьте время или выберите «Любой врач»</p><button class="btn" id="expand">Расширить условия</button><button class="btn plain" id="keep">Оставить как есть</button>`);
+  document.getElementById('expand').onclick=()=>{closeOverlay()};document.getElementById('keep').onclick=()=>{closeOverlay();go('review')};return}
+ go('review');
+});
+document.getElementById('createReq').addEventListener('click',()=>{if(S.req&&S.req.status==='queue'){stack=['home','myreq'];show('myreq');toast('Условия заявки обновлены');return}S.req={status:'queue',created:TODAY,spec:S.spec};S.booked=null;stack=['home','created'];show('created')});
+
+function renderMyReq(){
+ const b=document.getElementById('myreqBody');
+ if(!S.req||S.req.status==='closed'){b.innerHTML=`<div class="result" style="padding-top:60px"><div class="big blue"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><h2>${S.req?'Активных заявок нет':'Заявок пока нет'}</h2><p>${S.req?'Последняя заявка закрыта записью к врачу':'Если к врачу нет удобного времени, создайте заявку, и мы запишем вас сами'}</p></div><button class="btn" data-go="spec">Создать заявку</button>`;return}
+ const rows=[['Врач',docName()],['Дни',daysText()],['Время',timesText()],['Не позже',fmt(deadline())]];
+ b.innerHTML=`<div class="card" style="margin-top:6px"><div class="req-top"><div><div class="req-title">${S.spec}</div><small class="muted">Создана ${fmt(S.req.created)}</small></div><span class="tag">В очереди</span></div>
+ ${rows.map(r=>`<div class="sum-row"><span>${r[0]}</span><span>${r[1]}</span></div>`).join('')}
+ <div class="statusline"><span class="pulse"></span>Ищем время. Автозапись включена</div>
+ <div class="btn-pair"><button class="btn ghost" data-go="time">Изменить условия</button><button class="btn danger" id="cancelReq">Отменить</button></div></div>
+ <div class="hint" style="margin:4px 16px 0">Место в очереди сохраняется, даже если вы меняете условия</div>`;
+ document.getElementById('cancelReq').onclick=()=>{sheet(`<h3>Отменить заявку?</h3><p>Мы перестанем искать время к ${dative[S.spec]||'врачу'}. Создать новую заявку можно в любой момент</p><button class="btn danger" id="yesCancel">Отменить заявку</button><button class="btn plain" id="noCancel">Не отменять</button>`);
+  document.getElementById('yesCancel').onclick=()=>{S.req=null;closeOverlay();renderMyReq();toast('Заявка отменена')};document.getElementById('noCancel').onclick=closeOverlay};
+}
+function renderRecords(){
+ const b=document.getElementById('recordsBody');let h='';
+ if(S.booked){const s=S.booked;h+=`<div class="sec" style="margin-top:4px">Новая запись</div><div class="card hl" style="padding:14px 16px"><div class="req-top"><div><div class="req-title">${S.spec}</div><small class="muted">${s.doc.n}, ${s.doc.s}</small></div><span class="tag green">Подтверждена</span></div><div style="display:flex;gap:8px;align-items:center;font-size:16px;font-weight:600;margin-top:8px">${ic.cal} ${WD[s.date.getDay()]}, ${fmt(s.date)}, ${s.time}</div><div class="statusline">Заявка закрыта. Напомним за день до приёма</div></div>`}
+ h+=`<div class="sec" style="margin-top:${S.booked?20:4}px">Предстоящие</div><div class="card" style="padding:14px 16px"><div class="req-top"><div><div class="req-title">Терапевт</div><small class="muted">Иванова Н. П., каб. 108</small></div></div><div style="display:flex;gap:8px;align-items:center;font-size:16px;font-weight:600;margin-top:8px">${ic.cal} Ср, 28 октября, 10:15</div></div>`;
+ b.innerHTML=h;
+}
+
+/* ---------- confirm flow ---------- */
+let timerInt,timerLeft;
+function startTimer(){clearInterval(timerInt);timerLeft=2*3600-1;const el=document.getElementById('timer');const tick=()=>{const h=Math.floor(timerLeft/3600),m=Math.floor(timerLeft%3600/60),s=timerLeft%60;el.textContent=`${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;timerLeft--};tick();timerInt=setInterval(tick,1000)}
+document.getElementById('notif').addEventListener('click',()=>go('confirm'));
+document.getElementById('confirmBtn').addEventListener('click',()=>{
+ clearInterval(timerInt);S.booked=S.slot;S.req.status='closed';const s=S.slot;
+ modal(`<div class="ok">${ic.check}</div><h3>Вы записаны</h3><div class="md">${ic.cal} ${WDF[s.date.getDay()]}, ${fmt(s.date)} в ${s.time}</div><button class="link" id="addCal">Добавить в календарь</button><button class="btn" id="doneBooked">Готово</button>`);
+ document.getElementById('addCal').onclick=()=>toast('Добавлено в календарь');
+ document.getElementById('doneBooked').onclick=()=>{stack=['home','records'];show('records')};
+});
+document.getElementById('declineBtn').addEventListener('click',()=>{
+ sheet(`<h3>Отказаться от этого времени?</h3><p>Время перейдёт следующему пациенту. Ваша заявка останется в очереди, и мы продолжим искать</p><button class="btn danger" id="yesDecl">Отказаться</button><button class="btn plain" id="noDecl">Вернуться</button>`);
+ document.getElementById('yesDecl').onclick=()=>{clearInterval(timerInt);S.slot=null;stack=['home','myreq'];show('myreq');toast('Заявка снова в очереди')};document.getElementById('noDecl').onclick=closeOverlay;
+});
+document.getElementById('willCome').addEventListener('click',()=>{toast('Спасибо, ждём вас');setTimeout(home,1300)});
+document.getElementById('cancelVisit').addEventListener('click',()=>{
+ sheet(`<h3>Отменить запись?</h3><p>Время сразу предложим следующему пациенту из умной очереди</p><button class="btn danger" id="yesVisit">Отменить запись</button><button class="btn plain" id="noVisit">Не отменять</button>`);
+ document.getElementById('yesVisit').onclick=()=>{S.booked=null;stack=['home','e5'];show('e5')};document.getElementById('noVisit').onclick=closeOverlay;
+});
+document.getElementById('newReq').addEventListener('click',()=>{stack=['home','sched'];go('doctor')});
+document.getElementById('takeNearest').addEventListener('click',()=>{S.slot={date:new Date(2026,10,3),time:'10:20',doc:DOCTORS[2]};S.booked=S.slot;S.req.status='closed';stack=['home','records'];show('records');toast('Вы записаны на 3 ноября, 10:20')});
+document.getElementById('extendReq').addEventListener('click',()=>{S.period=Math.min(S.period+14,44);stack=['home','myreq'];show('myreq');toast(`Заявка продлена до ${fmt(deadline())}`)});
+
+/* ---------- demo events ---------- */
+document.getElementById('evSlot').onclick=()=>{ensureReq();S.req.status='queue';S.slot=findSlot();stack=['home','myreq','push'];show('push')};
+document.getElementById('evTimeout').onclick=()=>{ensureReq();S.req.status='queue';S.slot=null;clearInterval(timerInt);stack=['home','e4'];show('e4')};
+document.getElementById('evDeadline').onclick=()=>{ensureReq();S.req.status='queue';stack=['home','myreq','e3'];show('e3')};
+document.getElementById('evRemind').onclick=()=>{if(!S.booked){ensureReq();S.slot=S.slot||findSlot();S.booked=S.slot;S.req.status='closed'}stack=['home','records','reminder'];show('reminder')};
+document.getElementById('reset').onclick=()=>{clearInterval(timerInt);initState();home()};
+document.getElementById('steps').innerHTML=MAIN.map((m,i)=>`<button data-to="${m[0]}"><i>${i}</i>${m[1]}</button>`).join('');
+document.getElementById('steps').addEventListener('click',e=>{const b=e.target.closest('[data-to]');if(!b)return;const id=b.dataset.to;
+ if(['push','confirm'].includes(id)){ensureReq();S.req.status='queue';S.slot=S.slot||findSlot()}
+ if(['records','reminder'].includes(id)&&!S.booked){ensureReq();S.slot=S.slot||findSlot();S.booked=S.slot;S.req.status='closed'}
+ if(['created','myreq'].includes(id)&&!S.req)ensureReq();
+ const idx=MAIN.findIndex(m=>m[0]===id);stack=MAIN.slice(0,idx+1).map(m=>m[0]);show(id)});
+
+/* ---------- overlays ---------- */
+const ov=document.getElementById('overlay');
+function sheet(html){ov.className='overlay show';ov.innerHTML=`<div class="sheet"><div class="grab"></div>${html}</div>`}
+function modal(html){ov.className='overlay show center';ov.innerHTML=`<div class="modal">${html}</div>`}
+function closeOverlay(){ov.className='overlay';ov.innerHTML=''}
+ov.addEventListener('click',e=>{if(e.target===ov)closeOverlay()});
+let tt;function toast(t){const el=document.getElementById('toast');el.textContent=t;el.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('show'),1800)}
+
+document.addEventListener('keydown',e=>{if(e.key==='h'||e.key==='H'||e.key==='р'||e.key==='Р')document.querySelector('.demo').classList.toggle('hidden')});
+show('home');
+</script>
+</body>
+</html>
